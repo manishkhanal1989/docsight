@@ -517,3 +517,11 @@ def test_short_docx_still_routes_to_vision(tmp_path: Path):
     for pixels -- that is the scanned-certificate case."""
     p = fx.build_docx(tmp_path / "short.docx", fx.para("See attached."))
     assert docsight.extract(p).strategy is Strategy.IMAGE_ONLY
+
+
+def test_selfcheck_passes_in_this_environment():
+    """The self-check is what a user on a locked-down machine runs to find
+    out whether the library works there, so it has to be correct itself."""
+    from docsight.selfcheck import run
+
+    assert run(verbose=False) is True

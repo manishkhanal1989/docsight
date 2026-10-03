@@ -29,13 +29,60 @@ print(reading.data)         # {'spouse_a': 'Dana Alvarez', ...}
 print(reading.used_vision)  # False if the text layer was enough
 ```
 
+## Does it work on my machine?
+
+One command, no test files needed — it builds a document in a temp directory
+using only the standard library and runs it through the whole pipeline:
+
+```bash
+python -m docsight --selfcheck
+```
+
+```
+docsight 0.1.0
+  python        3.12.6 (CPython)
+  platform      Windows 11 / AMD64
+
+Optional extras (core formats need none of these):
+  no   pymupdf      PDF text and images, page rendering
+  no   PIL          TIFF splitting, downscaling, format conversion
+  no   openai       docsight.read() convenience client
+  no   LibreOffice  legacy .doc/.xls/.ppt, Office page rendering
+
+Pipeline check (synthetic .docx with a floating scan):
+  ok    detect format by content  (docx)
+  ok    extract text
+  ok    find the floating (anchored) image  (1 image(s))
+  ok    read image dimensions without Pillow  (1200x1600)
+  ok    route to a strategy  (image_only)
+  ok    build an OpenAI-compatible payload  (3 parts, 1 image)
+
+RESULT: core pipeline works here.
+```
+
+That output is from a bare virtualenv with nothing but `pip` in it. Written
+for air-gapped and locked-down machines, where the first question is whether
+anything works at all.
+
 ## Install
+
+**No installation needed for the core formats.** Copy the `docsight/` folder
+next to your script and `import docsight` — it imports no third-party module,
+so there is nothing to install, no network access required, and no admin
+rights needed. That is the path to use on a machine where `pip` is blocked.
+
+Otherwise:
 
 ```bash
 pip install docsight              # Word, Excel, PowerPoint, ODF, RTF, HTML, text, images
 pip install "docsight[all]"       # adds PDF, HEIC, TIFF splitting, downscaling
 pip install "docsight[llm]"       # adds the openai client for docsight.read()
+
+# straight from source, no PyPI needed:
+pip install git+https://github.com/manishkhanal1989/docsight
 ```
+
+Python 3.10 or newer.
 
 The entire OOXML family â€” `.docx`, `.xlsx`, `.pptx` â€” plus ODF, RTF, HTML and images needs **no third-party packages at all**. PDF needs PyMuPDF. Legacy `.doc`/`.xls`/`.ppt` and faithful page rendering need LibreOffice:
 

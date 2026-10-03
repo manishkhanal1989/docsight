@@ -32,7 +32,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-render", action="store_true", help="disable page-render fallback")
     ap.add_argument("--text", action="store_true", help="print the extracted text layer")
     ap.add_argument("--formats", action="store_true", help="list supported formats and exit")
+    ap.add_argument(
+        "--selfcheck",
+        action="store_true",
+        help="verify the library works in this environment and exit",
+    )
     args = ap.parse_args(argv)
+
+    if args.selfcheck:
+        from .selfcheck import run
+
+        return 0 if run() else 1
 
     if args.formats:
         print("Supported formats:")
@@ -42,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.paths:
-        ap.error("give at least one file, or --formats")
+        ap.error("give at least one file, or --formats / --selfcheck")
 
     flt: ImageFilter = {"default": ImageFilter(), "strict": STRICT, "all": KEEP_ALL}[
         args.filter
