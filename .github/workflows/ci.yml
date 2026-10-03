@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check docsight tests
+
+      - name: Test
+        run: python -m pytest tests -q
+
+  # The stdlib formats must keep working with nothing else installed --
+  # that claim is in the README, so CI has to hold it.
+  no-extras:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . && python -m pip install pytest
+      - name: Import pulls in no third-party module
+        run: |
+          python -c "
+          import sys, docsight
+          leaked = {k.split('.')[0] for k in sys.modules} & {
+              'PIL', 'pymupdf', 'fitz', 'docx', 'openpyxl', 'openai', 'lxml'}
+          assert not leaked, f'leaked imports: {leaked}'
+          print('clean: no third-party imports')
+          "
+      - name: Core formats work without extras
+        run: python -m pytest tests -q -k "docx or xlsx or pptx or rtf or odt or odf or html or csv or text or archive or email or zip"
