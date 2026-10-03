@@ -1,0 +1,63 @@
+name: Publish to PyPI
+
+# Publishes on a published GitHub release, via PyPI Trusted Publishing
+# (OIDC) -- no API token is stored anywhere. See the one-time PyPI setup
+# in CONTRIBUTING.md.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Check metadata renders on PyPI
+        run: python -m twine check dist/*
+
+      # The tag must match the version in pyproject.toml, or the release
+      # silently publishes something other than what the tag claims.
+      - name: Verify tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          VERSION=$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "pyproject: $VERSION / tag: $TAG"
+          test "$VERSION" = "$TAG" || {
+            echo "::error::tag $GITHUB_REF_NAME does not match version $VERSION"
+            exit 1
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
